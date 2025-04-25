@@ -1,5 +1,9 @@
-import { oldVisit, PluginFunction, Types } from '@graphql-codegen/plugin-helpers';
-import { transformSchemaAST } from '@graphql-codegen/schema-ast';
+import {
+  oldVisit,
+  PluginFunction,
+  Types,
+} from "@graphql-codegen/plugin-helpers";
+import { transformSchemaAST } from "@graphql-codegen/schema-ast";
 import {
   DocumentNode,
   getNamedType,
@@ -12,17 +16,20 @@ import {
   TypeInfo,
   visit,
   visitWithTypeInfo,
-} from 'graphql';
-import { TypeScriptPluginConfig } from './config';
-import { TsIntrospectionVisitor } from './introspection-visitor';
-import { TsVisitor } from './visitor';
+} from "graphql";
+import { TypeScriptPluginConfig } from "./config";
+import { TsIntrospectionVisitor } from "./introspection-visitor";
+import { TsVisitor } from "./visitor";
 
-export * from './config';
-export * from './introspection-visitor';
-export * from './typescript-variables-to-object';
-export * from './visitor';
+export * from "./config";
+export * from "./introspection-visitor";
+export * from "./typescript-variables-to-object";
+export * from "./visitor";
 
-export const plugin: PluginFunction<TypeScriptPluginConfig, Types.ComplexPluginOutput> = (
+export const plugin: PluginFunction<
+  TypeScriptPluginConfig,
+  Types.ComplexPluginOutput
+> = (
   schema: GraphQLSchema,
   documents: Types.DocumentFile[],
   config: TypeScriptPluginConfig
@@ -32,17 +39,19 @@ export const plugin: PluginFunction<TypeScriptPluginConfig, Types.ComplexPluginO
   const visitor = new TsVisitor(_schema, config);
 
   const visitorResult = oldVisit(ast, { leave: visitor });
-  const introspectionDefinitions = includeIntrospectionTypesDefinitions(_schema, documents, config);
+  const introspectionDefinitions = includeIntrospectionTypesDefinitions(
+    _schema,
+    documents,
+    config
+  );
   const scalars = visitor.scalarsDefinition;
-  const directiveArgumentAndInputFieldMappings = visitor.directiveArgumentAndInputFieldMappingsDefinition;
+  const directiveArgumentAndInputFieldMappings =
+    visitor.directiveArgumentAndInputFieldMappingsDefinition;
 
   return {
-    prepend: [
-      ...visitor.getEnumsImports(),
-      ...visitor.getDirectiveArgumentAndInputFieldMappingsImports(),
-      ...visitor.getScalarsImports(),
-      ...visitor.getWrapperDefinitions(),
-    ].filter(Boolean),
+    prepend: ["import { fakerEN as faker } from '@faker-js/faker';"].filter(
+      Boolean
+    ),
     content: [
       scalars,
       directiveArgumentAndInputFieldMappings,
@@ -50,7 +59,7 @@ export const plugin: PluginFunction<TypeScriptPluginConfig, Types.ComplexPluginO
       ...introspectionDefinitions,
     ]
       .filter(Boolean)
-      .join('\n'),
+      .join("\n"),
   };
 };
 
@@ -82,7 +91,10 @@ export function includeIntrospectionTypesDefinitions(
   }
 
   const visitor = new TsIntrospectionVisitor(schema, config, typesToInclude);
-  const result: DocumentNode = oldVisit(parse(printIntrospectionSchema(schema)), { leave: visitor });
+  const result: DocumentNode = oldVisit(
+    parse(printIntrospectionSchema(schema)),
+    { leave: visitor }
+  );
 
   // recursively go through each `usedTypes` and their children and collect all used types
   // we don't care about Interfaces, Unions and others, but Objects and Enums

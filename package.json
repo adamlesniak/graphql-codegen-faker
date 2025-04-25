@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@auto-it/conventional-commits": "^11.1.6",
+    "@faker-js/faker": "^9.7.0",
     "@graphql-codegen/plugin-helpers": "^5.1.0",
     "@graphql-codegen/schema-ast": "^4.1.0",
     "@graphql-codegen/testing": "^3.0.4",

@@ -1,4 +1,7 @@
-import { AvoidOptionalsConfig, RawTypesConfig } from '@graphql-codegen/visitor-plugin-common';
+import {
+  AvoidOptionalsConfig,
+  RawTypesConfig,
+} from "@graphql-codegen/visitor-plugin-common";
 
 /**
  * @description This plugin generates the base TypeScript types, based on your GraphQL schema.
@@ -512,4 +515,16 @@ export interface TypeScriptPluginConfig extends RawTypesConfig {
    * ```
    */
   allowEnumStringTypes?: boolean;
+}
+
+export enum Directives {
+  FAKER = "faker",
+  FAKER_LIST = "fakerList",
+  FAKER_RESOLVER = "fakerResolver",
+}
+
+export enum ArgumentName {
+  METHOD = "method",
+  MODULE = "module",
+  ARGS = "args",
 }

@@ -17,11 +17,11 @@ export class TsIntrospectionVisitor extends TsVisitor {
     return null;
   }
 
-  ObjectTypeDefinition(node: ObjectTypeDefinitionNode, key: string | number, parent: any) {
+  ObjectTypeDefinition(node: ObjectTypeDefinitionNode) {
     const name: string = node.name as any;
 
     if (this.typesToInclude.some(type => type.name === name)) {
-      return super.ObjectTypeDefinition(node, key, parent);
+      return super.ObjectTypeDefinition(node);
     }
 
     return null;
