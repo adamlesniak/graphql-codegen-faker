@@ -39,27 +39,12 @@ export const plugin: PluginFunction<
   const visitor = new TsVisitor(_schema, config);
 
   const visitorResult = oldVisit(ast, { leave: visitor });
-  const introspectionDefinitions = includeIntrospectionTypesDefinitions(
-    _schema,
-    documents,
-    config
-  );
-  const scalars = visitor.scalarsDefinition;
-  const directiveArgumentAndInputFieldMappings =
-    visitor.directiveArgumentAndInputFieldMappingsDefinition;
 
   return {
     prepend: ["import { fakerEN as faker } from '@faker-js/faker';"].filter(
       Boolean
     ),
-    content: [
-      scalars,
-      directiveArgumentAndInputFieldMappings,
-      ...visitorResult.definitions,
-      ...introspectionDefinitions,
-    ]
-      .filter(Boolean)
-      .join("\n"),
+    content: visitorResult.definitions.filter((def) => def.length > 0).join("\n")
   };
 };
 

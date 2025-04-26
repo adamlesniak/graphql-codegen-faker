@@ -4,16 +4,18 @@ import { plugin } from "../src/index";
 describe("TypeScript", () => {
   it("should expose Maybe", async () => {
     const schema = buildSchema(/* GraphQL */ `
+      scalar FakerArgs
+
       directive @faker(
         module: String!
         method: String!
-        args: String
+        args: FakerArgs
       ) on FIELD_DEFINITION
       directive @fakerResolvers on OBJECT
       directive @fakerList(items: Int!) on OBJECT
 
       type User @fakerList(items: 20) {
-        id: String @faker(module: string, method: uuid, args: "{sex: 'male'}")
+        id: String @faker(module: string, method: uuid, args: { sex: "male" })
         name: String @faker(module: person, method: firstName)
         email: String
         password: String
@@ -38,14 +40,15 @@ describe("TypeScript", () => {
       }
     `);
     const result = await plugin(schema, [], {}, { outputFile: "" });
+
     expect(result.prepend).toEqual([
-      "export type Maybe<T> = T | null;",
-      "export type InputMaybe<T> = Maybe<T>;",
-      "export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };",
-      "export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };",
-      "export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };",
-      "export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };",
-      "export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };",
+      "import { fakerEN as faker } from '@faker-js/faker';",
     ]);
+    expect(result.content).toEqual(
+      [
+        'export const mockUser = {id: faker.string().uuid({"sex":"male"}),name: faker.person().firstName()};',
+        "export const mockUserList = Array.from({ length: 20 }, () => ({...mockUser}));",
+      ].join("\n")
+    );
   });
 });

@@ -2,36 +2,23 @@ import {
   BaseTypesVisitor,
   DeclarationKind,
   getConfigValue,
-  normalizeAvoidOptionals,
-  NormalizedAvoidOptionalsConfig,
   ParsedTypesConfig,
 } from "@graphql-codegen/visitor-plugin-common";
 import autoBind from "auto-bind";
 import {
   ArgumentNode,
   DirectiveNode,
+  EnumValueNode,
   GraphQLSchema,
-  isEnumType,
+  IntValueNode,
   ObjectTypeDefinitionNode,
+  ObjectValueNode,
+  StringValueNode,
 } from "graphql";
-import { TypeScriptPluginConfig, Directives, ArgumentName } from "./config";
-import { TypeScriptOperationVariablesToObject } from "./typescript-variables-to-object";
+import { ArgumentName, Directives, TypeScriptPluginConfig } from "./config";
 
 export interface TypeScriptPluginParsedConfig extends ParsedTypesConfig {
-  avoidOptionals: NormalizedAvoidOptionalsConfig;
-  constEnums: boolean;
-  enumsAsTypes: boolean;
-  futureProofEnums: boolean;
-  futureProofUnions: boolean;
-  enumsAsConst: boolean;
-  numericEnums: boolean;
-  onlyEnums: boolean;
-  onlyOperationTypes: boolean;
-  immutableTypes: boolean;
-  maybeValue: string;
-  inputMaybeValue: string;
-  noExport: boolean;
-  useImplementingTypes: boolean;
+  mockPrefix: string;
 }
 
 export const EXACT_SIGNATURE = `type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };`;
@@ -53,103 +40,97 @@ export class TsVisitor<
     additionalConfig: Partial<TParsedConfig> = {}
   ) {
     super(schema, pluginConfig, {
-      noExport: getConfigValue(pluginConfig.noExport, false),
-      avoidOptionals: normalizeAvoidOptionals(
-        getConfigValue(pluginConfig.avoidOptionals, false)
-      ),
-      maybeValue: getConfigValue(pluginConfig.maybeValue, "T | null"),
-      inputMaybeValue: getConfigValue(
-        pluginConfig.inputMaybeValue,
-        getConfigValue(pluginConfig.maybeValue, "Maybe<T>")
-      ),
-      constEnums: getConfigValue(pluginConfig.constEnums, false),
-      enumsAsTypes: getConfigValue(pluginConfig.enumsAsTypes, false),
-      futureProofEnums: getConfigValue(pluginConfig.futureProofEnums, false),
-      futureProofUnions: getConfigValue(pluginConfig.futureProofUnions, false),
-      enumsAsConst: getConfigValue(pluginConfig.enumsAsConst, false),
-      numericEnums: getConfigValue(pluginConfig.numericEnums, false),
-      onlyEnums: getConfigValue(pluginConfig.onlyEnums, false),
-      onlyOperationTypes: getConfigValue(
-        pluginConfig.onlyOperationTypes,
-        false
-      ),
-      immutableTypes: getConfigValue(pluginConfig.immutableTypes, false),
-      useImplementingTypes: getConfigValue(
-        pluginConfig.useImplementingTypes,
-        false
-      ),
-      entireFieldWrapperValue: getConfigValue(
-        pluginConfig.entireFieldWrapperValue,
-        "T"
-      ),
-      wrapEntireDefinitions: getConfigValue(
-        pluginConfig.wrapEntireFieldDefinitions,
-        false
-      ),
+      mockPrefix: getConfigValue(pluginConfig.mockPrefix, "mock"),
       ...additionalConfig,
     } as TParsedConfig);
 
     autoBind(this);
-    const enumNames = Object.values(schema.getTypeMap())
-      .filter(isEnumType)
-      .map((type) => type.name);
-    this.setArgumentsTransformer(
-      new TypeScriptOperationVariablesToObject(
-        this.scalars,
-        this.convertName,
-        this.config.avoidOptionals,
-        this.config.immutableTypes,
-        null,
-        enumNames,
-        pluginConfig.enumPrefix,
-        pluginConfig.enumSuffix,
-        this.config.enumValues,
-        false,
-        this.config.directiveArgumentAndInputFieldMappings,
-        "InputMaybe"
-      )
-    );
-    this.setDeclarationBlockConfig({
-      enumNameValueSeparator: " =",
-      ignoreExport: this.config.noExport,
-    });
-  }
-
-  protected getExportPrefix(): string {
-    if (this.config.noExport) {
-      return "";
-    }
-
-    return super.getExportPrefix();
   }
 
   ObjectTypeDefinition(node: ObjectTypeDefinitionNode): string | undefined {
-    const fields = node.fields;
-    console.log("fields", node, fields);
-    const fakerDirective = this._getDirectiveFromAstNode(
-      node,
-      Directives.FAKER
-    );
+    const typeName = (node.name as unknown as string) || node.name.value;
 
-    if (fakerDirective) {
-      const [module, method] = [
-        this._getArgumentFromDirectiveAstNode(
-          fakerDirective,
-          ArgumentName.MODULE
-        ),
-        this._getArgumentFromDirectiveAstNode(
-          fakerDirective,
-          ArgumentName.METHOD
-        ),
-      ];
+    const result = {
+      name: typeName,
+      fields: [],
+    };
 
-      console.log("node", node.name, module.value, method.value);
-      console.log("directives", JSON.stringify(node.directives));
+    const type = this._schema.getTypeMap()[typeName]
+      .astNode as ObjectTypeDefinitionNode;
 
-      return ``;
+    for (const field of type.fields) {
+      const fakerDirective = this._getDirectiveFromAstNode(
+        field,
+        Directives.FAKER
+      );
+
+      if (fakerDirective) {
+        const [module, method, args] = [
+          this._getArgumentFromDirectiveAstNode(
+            fakerDirective,
+            ArgumentName.MODULE
+          ).value as EnumValueNode,
+          this._getArgumentFromDirectiveAstNode(
+            fakerDirective,
+            ArgumentName.METHOD
+          ).value as EnumValueNode,
+          this._getArgumentFromDirectiveAstNode(
+            fakerDirective,
+            ArgumentName.ARGS
+          )?.value as ObjectValueNode,
+        ];
+
+        const props = {};
+
+        if (args?.fields) {
+          for (const fakerField of args.fields) {
+            props[fakerField.name.value] = (
+              fakerField.value as StringValueNode
+            ).value;
+          }
+        }
+
+        result.fields = [
+          ...result.fields,
+          `${field.name.value}: faker.${module.value}().${method.value}(${
+            Object.values(props).length > 0 ? JSON.stringify(props) : ""
+          })`,
+        ];
+      }
     }
 
-    return undefined;
+    const fakerListDirective = this._getDirectiveFromAstNode(
+      node,
+      Directives.FAKER_LIST
+    );
+
+    let fakerResult = [];
+
+    if (result.fields.length > 0) {
+      fakerResult = [
+        `export const ${
+          this.config.mockPrefix
+        }${typeName} = {${result.fields.join(",")}};`,
+      ];
+
+      if (fakerListDirective) {
+        const [items] = [
+          this._getArgumentFromDirectiveAstNode(
+            fakerListDirective,
+            ArgumentName.ITEMS
+          ).value as IntValueNode,
+        ];
+
+        fakerResult = [
+          ...fakerResult,
+          `export const ${this.config.mockPrefix}${typeName}List = Array.from({ length: ${items.value} }, () => ({...${this.config.mockPrefix}${typeName}}));`,
+        ];
+      }
+
+      return fakerResult.join("\n");
+    }
+
+    return "";
   }
 
   private _getDirectiveFromAstNode(
