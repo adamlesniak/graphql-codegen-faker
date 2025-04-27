@@ -5,101 +5,33 @@ import {
 } from "@graphql-codegen/plugin-helpers";
 import { transformSchemaAST } from "@graphql-codegen/schema-ast";
 import {
-  DocumentNode,
-  getNamedType,
-  GraphQLNamedType,
   GraphQLSchema,
-  isIntrospectionType,
-  isObjectType,
-  parse,
-  printIntrospectionSchema,
-  TypeInfo,
-  visit,
-  visitWithTypeInfo,
 } from "graphql";
-import { TypeScriptPluginConfig } from "./config";
-import { TsIntrospectionVisitor } from "./introspection-visitor";
-import { TsVisitor } from "./visitor";
+import { FakerPluginConfig } from "./config";
+import { FakerVisitor } from "./visitor";
 
 export * from "./config";
 export * from "./introspection-visitor";
-export * from "./typescript-variables-to-object";
 export * from "./visitor";
 
 export const plugin: PluginFunction<
-  TypeScriptPluginConfig,
+  FakerPluginConfig,
   Types.ComplexPluginOutput
 > = (
   schema: GraphQLSchema,
-  documents: Types.DocumentFile[],
-  config: TypeScriptPluginConfig
+  _documents: Types.DocumentFile[],
+  config: FakerPluginConfig
 ) => {
-  const { schema: _schema, ast } = transformSchemaAST(schema, config);
+    const { schema: _schema, ast } = transformSchemaAST(schema, config);
 
-  const visitor = new TsVisitor(_schema, config);
+    const visitor = new FakerVisitor(_schema, config);
 
-  const visitorResult = oldVisit(ast, { leave: visitor });
-
-  return {
-    prepend: ["import { fakerEN as faker } from '@faker-js/faker';"].filter(
-      Boolean
-    ),
-    content: visitorResult.definitions.filter((def) => def.length > 0).join("\n")
+    const visitorResult = oldVisit(ast, { leave: visitor });
+  
+    return {
+      prepend: ["import { fakerEN as faker } from '@faker-js/faker';"].filter(
+        Boolean
+      ),
+      content: visitorResult.definitions.filter((def) => def.length > 0).join("\n")
+    };
   };
-};
-
-export function includeIntrospectionTypesDefinitions(
-  schema: GraphQLSchema,
-  documents: Types.DocumentFile[],
-  config: TypeScriptPluginConfig
-): string[] {
-  const typeInfo = new TypeInfo(schema);
-  const usedTypes: GraphQLNamedType[] = [];
-  const documentsVisitor = visitWithTypeInfo(typeInfo, {
-    Field() {
-      const type = getNamedType(typeInfo.getType());
-
-      if (type && isIntrospectionType(type) && !usedTypes.includes(type)) {
-        usedTypes.push(type);
-      }
-    },
-  });
-
-  for (const doc of documents) {
-    visit(doc.document, documentsVisitor);
-  }
-
-  const typesToInclude: GraphQLNamedType[] = [];
-
-  for (const type of usedTypes) {
-    collectTypes(type);
-  }
-
-  const visitor = new TsIntrospectionVisitor(schema, config, typesToInclude);
-  const result: DocumentNode = oldVisit(
-    parse(printIntrospectionSchema(schema)),
-    { leave: visitor }
-  );
-
-  // recursively go through each `usedTypes` and their children and collect all used types
-  // we don't care about Interfaces, Unions and others, but Objects and Enums
-  function collectTypes(type: GraphQLNamedType): void {
-    if (typesToInclude.includes(type)) {
-      return;
-    }
-
-    typesToInclude.push(type);
-
-    if (isObjectType(type)) {
-      const fields = type.getFields();
-
-      for (const key of Object.keys(fields)) {
-        const field = fields[key];
-        const type = getNamedType(field.type);
-        collectTypes(type);
-      }
-    }
-  }
-
-  return result.definitions as any[];
-}

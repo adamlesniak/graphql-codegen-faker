@@ -1,12 +1,12 @@
 import autoBind from 'auto-bind';
-import { EnumTypeDefinitionNode, GraphQLNamedType, GraphQLSchema, ObjectTypeDefinitionNode } from 'graphql';
-import { TypeScriptPluginConfig } from './config';
-import { TsVisitor } from './visitor';
+import { GraphQLNamedType, GraphQLSchema, ObjectTypeDefinitionNode } from 'graphql';
+import { FakerPluginConfig } from './config';
+import { FakerVisitor } from './visitor';
 
-export class TsIntrospectionVisitor extends TsVisitor {
+export class FakerIntrospectionVisitor extends FakerVisitor {
   private typesToInclude: GraphQLNamedType[] = [];
 
-  constructor(schema: GraphQLSchema, pluginConfig: TypeScriptPluginConfig = {}, typesToInclude: GraphQLNamedType[]) {
+  constructor(schema: GraphQLSchema, pluginConfig: FakerPluginConfig = {}, typesToInclude: GraphQLNamedType[]) {
     super(schema, pluginConfig);
 
     this.typesToInclude = typesToInclude;
@@ -22,16 +22,6 @@ export class TsIntrospectionVisitor extends TsVisitor {
 
     if (this.typesToInclude.some(type => type.name === name)) {
       return super.ObjectTypeDefinition(node);
-    }
-
-    return null;
-  }
-
-  EnumTypeDefinition(node: EnumTypeDefinitionNode): string {
-    const name: string = node.name as any;
-
-    if (this.typesToInclude.some(type => type.name === name)) {
-      return super.EnumTypeDefinition(node);
     }
 
     return null;

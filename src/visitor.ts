@@ -1,6 +1,4 @@
 import {
-  BaseTypesVisitor,
-  DeclarationKind,
   getConfigValue,
   ParsedTypesConfig,
 } from "@graphql-codegen/visitor-plugin-common";
@@ -15,40 +13,41 @@ import {
   ObjectValueNode,
   StringValueNode,
 } from "graphql";
-import { ArgumentName, Directives, TypeScriptPluginConfig } from "./config";
+import { ArgumentName, Directives, FakerPluginConfig } from "./config";
 
-export interface TypeScriptPluginParsedConfig extends ParsedTypesConfig {
+export interface FakerPluginParsedConfig extends ParsedTypesConfig {
   mockPrefix: string;
+  locality: string;
 }
-
-export const EXACT_SIGNATURE = `type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };`;
-export const MAKE_OPTIONAL_SIGNATURE = `type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };`;
-export const MAKE_MAYBE_SIGNATURE = `type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };`;
-export const MAKE_EMPTY_SIGNATURE = `type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };`;
-export const MAKE_INCREMENTAL_SIGNATURE = `type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };`;
 
 type Directivable = { directives?: ReadonlyArray<DirectiveNode> };
 type Argumentable = { arguments?: ReadonlyArray<ArgumentNode> };
 
-export class TsVisitor<
-  TRawConfig extends TypeScriptPluginConfig = TypeScriptPluginConfig,
-  TParsedConfig extends TypeScriptPluginParsedConfig = TypeScriptPluginParsedConfig
-> extends BaseTypesVisitor<TRawConfig, TParsedConfig> {
+export class FakerVisitor<TRawConfig extends FakerPluginConfig = FakerPluginConfig> {
+  protected _parsedConfig: FakerPluginConfig;
+  private _schema: GraphQLSchema;
+
   constructor(
     schema: GraphQLSchema,
     pluginConfig: TRawConfig,
-    additionalConfig: Partial<TParsedConfig> = {}
+    additionalConfig: Partial<FakerPluginConfig> = {}
   ) {
-    super(schema, pluginConfig, {
+    this._parsedConfig = {
       mockPrefix: getConfigValue(pluginConfig.mockPrefix, "mock"),
+      locality: getConfigValue(pluginConfig.locality, "EN"),
       ...additionalConfig,
-    } as TParsedConfig);
+    }
+    this._schema = schema;
 
     autoBind(this);
   }
 
+  get config() {
+    return this._parsedConfig;
+  }
+
   ObjectTypeDefinition(node: ObjectTypeDefinitionNode): string | undefined {
-    const typeName = (node.name as unknown as string) || node.name.value;
+    const typeName = node.name.value || (node as any).name as string;
 
     const result = {
       name: typeName,
@@ -92,8 +91,7 @@ export class TsVisitor<
 
         result.fields = [
           ...result.fields,
-          `${field.name.value}: faker.${module.value}().${method.value}(${
-            Object.values(props).length > 0 ? JSON.stringify(props) : ""
+          `${field.name.value}: faker.${module.value}.${method.value}(${Object.values(props).length > 0 ? JSON.stringify(props) : ""
           })`,
         ];
       }
@@ -108,8 +106,7 @@ export class TsVisitor<
 
     if (result.fields.length > 0) {
       fakerResult = [
-        `export const ${
-          this.config.mockPrefix
+        `export const ${this.config.mockPrefix
         }${typeName} = {${result.fields.join(",")}};`,
       ];
 
@@ -173,9 +170,5 @@ export class TsVisitor<
     }
 
     return foundArgument;
-  }
-
-  protected getPunctuation(_declarationKind: DeclarationKind): string {
-    return ";";
   }
 }
