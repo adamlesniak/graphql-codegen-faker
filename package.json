@@ -1,6 +1,6 @@
 {
   "name": "@graphql-codegen/faker",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "GraphQL Code Generator plugin for generating mocks based on faker package.",
   "repository": {
     "type": "git",
