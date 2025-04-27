@@ -1,8 +1,8 @@
 import { buildSchema } from "graphql";
 import { plugin } from "../src/index";
 
-describe("TypeScript", () => {
-  it("should expose Maybe", async () => {
+describe("Faker", () => {
+  it("should pass with sample decorators", async () => {
     const schema = buildSchema(/* GraphQL */ `
       scalar FakerArgs
 
