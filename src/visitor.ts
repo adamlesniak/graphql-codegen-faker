@@ -1,8 +1,8 @@
 import {
   getConfigValue,
   ParsedTypesConfig,
-} from "@graphql-codegen/visitor-plugin-common";
-import autoBind from "auto-bind";
+} from '@graphql-codegen/visitor-plugin-common';
+import autoBind from 'auto-bind';
 import {
   ArgumentNode,
   DirectiveNode,
@@ -12,8 +12,8 @@ import {
   ObjectTypeDefinitionNode,
   ObjectValueNode,
   StringValueNode,
-} from "graphql";
-import { ArgumentName, Directives, FakerPluginConfig } from "./config";
+} from 'graphql';
+import { ArgumentName, Directives, FakerPluginConfig } from './config';
 
 export interface FakerPluginParsedConfig extends ParsedTypesConfig {
   mockPrefix: string;
@@ -23,9 +23,14 @@ export interface FakerPluginParsedConfig extends ParsedTypesConfig {
 type Directivable = { directives?: ReadonlyArray<DirectiveNode> };
 type Argumentable = { arguments?: ReadonlyArray<ArgumentNode> };
 
-export class FakerVisitor<TRawConfig extends FakerPluginConfig = FakerPluginConfig> {
+export class FakerVisitor<
+  TRawConfig extends FakerPluginConfig = FakerPluginConfig,
+> {
   protected _parsedConfig: FakerPluginConfig;
   private _schema: GraphQLSchema;
+  private data = {
+    fields: new Map(),
+  }
 
   constructor(
     schema: GraphQLSchema,
@@ -33,10 +38,10 @@ export class FakerVisitor<TRawConfig extends FakerPluginConfig = FakerPluginConf
     additionalConfig: Partial<FakerPluginConfig> = {}
   ) {
     this._parsedConfig = {
-      mockPrefix: getConfigValue(pluginConfig.mockPrefix, "mock"),
-      locality: getConfigValue(pluginConfig.locality, "EN"),
+      mockPrefix: getConfigValue(pluginConfig.mockPrefix, 'mock'),
+      locality: getConfigValue(pluginConfig.locality, 'EN'),
       ...additionalConfig,
-    }
+    };
     this._schema = schema;
 
     autoBind(this);
@@ -47,7 +52,7 @@ export class FakerVisitor<TRawConfig extends FakerPluginConfig = FakerPluginConf
   }
 
   ObjectTypeDefinition(node: ObjectTypeDefinitionNode): string | undefined {
-    const typeName = node.name.value || (node as any).name as string;
+    const typeName = node.name.value || ((node as any).name as string);
 
     const result = {
       name: typeName,
@@ -57,11 +62,29 @@ export class FakerVisitor<TRawConfig extends FakerPluginConfig = FakerPluginConf
     const type = this._schema.getTypeMap()[typeName]
       .astNode as ObjectTypeDefinitionNode;
 
+    const fakerListDirective = this._getDirectiveFromAstNode(
+      node,
+      Directives.FAKER_LIST
+    );
+
+    const [items] = [
+      this._getArgumentFromDirectiveAstNode(
+        fakerListDirective,
+        ArgumentName.ITEMS
+      ).value as IntValueNode,
+    ];
+
     for (const field of type.fields) {
-      const fakerDirective = this._getDirectiveFromAstNode(
-        field,
-        Directives.FAKER
-      );
+      const [fakerDirective, fakerNested] = [
+        this._getDirectiveFromAstNode(
+          field,
+          Directives.FAKER
+        ),
+        this._getDirectiveFromAstNode(
+          field,
+          Directives.FAKER_NESTED
+        )
+      ];
 
       if (fakerDirective) {
         const [module, method, args] = [
@@ -91,43 +114,40 @@ export class FakerVisitor<TRawConfig extends FakerPluginConfig = FakerPluginConf
 
         result.fields = [
           ...result.fields,
-          `${field.name.value}: faker.${module.value}.${method.value}(${Object.values(props).length > 0 ? JSON.stringify(props) : ""
+          `${field.name.value}: faker.${module.value}.${method.value}(${Object.values(props).length > 0 ? JSON.stringify(props) : ''
           })`,
+        ];
+
+        this.data.fields.set(`${typeName}${field.name.value}`, `${Object.values(props).length > 0 ? JSON.stringify(props) : ''})`)
+      }
+
+      if (fakerNested) {
+        result.fields = [
+          ...result.fields,
+          `${field.name.value}: ${this.config.mockPrefix}${typeName}List[faker.number.int({ min: 0, max: ${items.value} })]`,
         ];
       }
     }
-
-    const fakerListDirective = this._getDirectiveFromAstNode(
-      node,
-      Directives.FAKER_LIST
-    );
 
     let fakerResult = [];
 
     if (result.fields.length > 0) {
       fakerResult = [
         `export const ${this.config.mockPrefix
-        }${typeName} = {${result.fields.join(",")}};`,
+        }${typeName} = {${result.fields.join(',')}};`,
       ];
 
       if (fakerListDirective) {
-        const [items] = [
-          this._getArgumentFromDirectiveAstNode(
-            fakerListDirective,
-            ArgumentName.ITEMS
-          ).value as IntValueNode,
-        ];
-
         fakerResult = [
           ...fakerResult,
           `export const ${this.config.mockPrefix}${typeName}List = Array.from({ length: ${items.value} }, () => ({...${this.config.mockPrefix}${typeName}}));`,
         ];
       }
 
-      return fakerResult.join("\n");
+      return fakerResult.join('\n');
     }
 
-    return "";
+    return '';
   }
 
   private _getDirectiveFromAstNode(

@@ -53,14 +53,15 @@ export interface FakerPluginConfig {
 }
 
 export enum Directives {
-  FAKER = "faker",
-  FAKER_LIST = "fakerList",
-  FAKER_RESOLVER = "fakerResolver",
+  FAKER = 'faker',
+  FAKER_LIST = 'fakerList',
+  FAKER_RESOLVER = 'fakerResolver',
+  FAKER_NESTED = 'fakerNested'
 }
 
 export enum ArgumentName {
-  METHOD = "method",
-  MODULE = "module",
-  ARGS = "args",
-  ITEMS = "items",
+  METHOD = 'method',
+  MODULE = 'module',
+  ARGS = 'args',
+  ITEMS = 'items',
 }

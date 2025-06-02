@@ -5,7 +5,7 @@ GraphQL Code Generator Plugin to define mock data factory.
 ## Installation
 
 ```sh
-npm install -D @adamlesniak/graphql-codegen-faker @graphql-codegen/cli @graphql-codegen/typescript
+npm install -D @alesniak/graphql-codegen-faker @graphql-codegen/cli @graphql-codegen/typescript
 npm install -S graphql
 ```
 
@@ -25,7 +25,7 @@ const config: CodegenConfig = {
   schema: './schema.graphql',
   generates: {
     './__generated__/mocks.ts': {
-      plugins: ['@adamlesniak/graphql-codegen-faker'],
+      plugins: ['@alesniak/graphql-codegen-faker'],
       config: {
         locality: 'EN',
         mockPrefix: 'mock',
