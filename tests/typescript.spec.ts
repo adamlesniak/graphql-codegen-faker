@@ -68,7 +68,7 @@ describe('Faker', () => {
     ]);
     expect(result.content).toEqual(
       [
-        'export const mockUser = {id: faker.string.uuid(),name: faker.person.firstName(),properties: mockUserList[faker.number.int({ min: 0, max: 20 })]};',
+        'export const mockUser = {id: faker.string.uuid(),name: faker.person.firstName(),properties: {id: faker.string.uuid(),name: faker.person.firstName()}};',
         'export const mockUserList = Array.from({ length: 20 }, () => ({...mockUser}));',
         'export const mockUserProperties = {id: faker.string.uuid(),name: faker.person.firstName()};',
         'export const mockUserPropertiesList = Array.from({ length: 20 }, () => ({...mockUserProperties}));',

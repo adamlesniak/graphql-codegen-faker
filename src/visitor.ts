@@ -9,6 +9,8 @@ import {
   EnumValueNode,
   GraphQLSchema,
   IntValueNode,
+  NamedTypeNode,
+  NonNullTypeNode,
   ObjectTypeDefinitionNode,
   ObjectValueNode,
   StringValueNode,
@@ -28,9 +30,6 @@ export class FakerVisitor<
 > {
   protected _parsedConfig: FakerPluginConfig;
   private _schema: GraphQLSchema;
-  private data = {
-    fields: new Map(),
-  }
 
   constructor(
     schema: GraphQLSchema,
@@ -51,30 +50,15 @@ export class FakerVisitor<
     return this._parsedConfig;
   }
 
-  ObjectTypeDefinition(node: ObjectTypeDefinitionNode): string | undefined {
-    const typeName = node.name.value || ((node as any).name as string);
 
-    const result = {
-      name: typeName,
-      fields: [],
-    };
+  fieldsToKeyValueString(fields: object) {
+    return Object.entries(fields).map(([key, value]) => `${key}: ${typeof value === 'string' ? value : '{' + this.fieldsToKeyValueString(value) + '}'}`);
+  }
 
-    const type = this._schema.getTypeMap()[typeName]
-      .astNode as ObjectTypeDefinitionNode;
+  getMockFieldsFromNode(node: ObjectTypeDefinitionNode) {
+    const result = [];
 
-    const fakerListDirective = this._getDirectiveFromAstNode(
-      node,
-      Directives.FAKER_LIST
-    );
-
-    const [items] = [
-      this._getArgumentFromDirectiveAstNode(
-        fakerListDirective,
-        ArgumentName.ITEMS
-      ).value as IntValueNode,
-    ];
-
-    for (const field of type.fields) {
+    for (const field of node.fields) {
       const [fakerDirective, fakerNested] = [
         this._getDirectiveFromAstNode(
           field,
@@ -112,42 +96,56 @@ export class FakerVisitor<
           }
         }
 
-        result.fields = [
-          ...result.fields,
-          `${field.name.value}: faker.${module.value}.${method.value}(${Object.values(props).length > 0 ? JSON.stringify(props) : ''
-          })`,
-        ];
-
-        this.data.fields.set(`${typeName}${field.name.value}`, `${Object.values(props).length > 0 ? JSON.stringify(props) : ''})`)
+        result[field.name.value] = `faker.${module.value}.${method.value}(${Object.values(props).length > 0 ? JSON.stringify(props) : ''})`;
       }
 
       if (fakerNested) {
-        result.fields = [
-          ...result.fields,
-          `${field.name.value}: ${this.config.mockPrefix}${typeName}List[faker.number.int({ min: 0, max: ${items.value} })]`,
-        ];
+        const refType = this._schema.getTypeMap()[((field.type as NonNullTypeNode).type as NamedTypeNode)?.name?.value];
+        const refTypeMockFields = this.getMockFieldsFromNode((refType.astNode as ObjectTypeDefinitionNode));
+
+        result[field.name.value] = {};
+
+        for (const [key, value] of Object.entries(refTypeMockFields)) {
+          result[field.name.value][key] = value;
+        }
       }
     }
+
+    return result;
+  }
+
+  ObjectTypeDefinition(node: ObjectTypeDefinitionNode): string | undefined {
+    const typeName = node.name.value || ((node as any).name as string);
+
+    const fakerListDirective = this._getDirectiveFromAstNode(
+      node,
+      Directives.FAKER_LIST
+    );
+
+    const [items] = [
+      this._getArgumentFromDirectiveAstNode(
+        fakerListDirective,
+        ArgumentName.ITEMS
+      ).value as IntValueNode,
+    ];
+
+    const fields = this.getMockFieldsFromNode(node)
 
     let fakerResult = [];
 
-    if (result.fields.length > 0) {
+    fakerResult = [
+      `export const ${this.config.mockPrefix
+      }${typeName} = {${this.fieldsToKeyValueString(fields)}};`,
+    ];
+
+    if (fakerListDirective) {
       fakerResult = [
-        `export const ${this.config.mockPrefix
-        }${typeName} = {${result.fields.join(',')}};`,
+        ...fakerResult,
+        `export const ${this.config.mockPrefix}${typeName}List = Array.from({ length: ${items.value} }, () => ({...${this.config.mockPrefix}${typeName}}));`,
       ];
-
-      if (fakerListDirective) {
-        fakerResult = [
-          ...fakerResult,
-          `export const ${this.config.mockPrefix}${typeName}List = Array.from({ length: ${items.value} }, () => ({...${this.config.mockPrefix}${typeName}}));`,
-        ];
-      }
-
-      return fakerResult.join('\n');
     }
 
-    return '';
+    return fakerResult.join('\n');
   }
 
   private _getDirectiveFromAstNode(
