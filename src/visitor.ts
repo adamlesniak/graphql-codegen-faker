@@ -115,6 +115,7 @@ export class FakerVisitor<
   }
 
   ObjectTypeDefinition(node: ObjectTypeDefinitionNode): string | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const typeName = node.name.value || ((node as any).name as string);
 
     const fakerListDirective = this._getDirectiveFromAstNode(
@@ -158,6 +159,7 @@ export class FakerVisitor<
 
     const foundDirective = node.directives.find(
       (d) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (d.name as any) === directiveName ||
         (d.name.value && d.name.value === directiveName)
     );
@@ -179,6 +181,7 @@ export class FakerVisitor<
 
     const foundArgument = node.arguments.find(
       (d) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (d.name as any) === argumentName ||
         (d.name.value && d.name.value === argumentName)
     );

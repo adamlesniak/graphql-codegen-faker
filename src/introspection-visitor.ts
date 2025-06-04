@@ -26,6 +26,7 @@ export class FakerIntrospectionVisitor extends FakerVisitor {
   }
 
   ObjectTypeDefinition(node: ObjectTypeDefinitionNode) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const name: string = node.name as any;
 
     if (this.typesToInclude.some((type) => type.name === name)) {
