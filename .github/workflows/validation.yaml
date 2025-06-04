@@ -2,13 +2,10 @@ name: conventional-commit-validation
 
 on:
   pull_request:
-    types:
-      - opened
-      - edited
-      - reopened
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
-  main:
+  validate-pr-title:
     name: Validate PR title
     runs-on: ubuntu-latest
     permissions:
