@@ -2,6 +2,12 @@
 
 GraphQL Code Generator Plugin to define mock data factory.
 
+## Getting started
+
+```sh
+npm run prepare
+```
+
 ## Installation
 
 ```sh

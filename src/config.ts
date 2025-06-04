@@ -56,7 +56,7 @@ export enum Directives {
   FAKER = 'faker',
   FAKER_LIST = 'fakerList',
   FAKER_RESOLVER = 'fakerResolver',
-  FAKER_NESTED = 'fakerNested'
+  FAKER_NESTED = 'fakerNested',
 }
 
 export enum ArgumentName {

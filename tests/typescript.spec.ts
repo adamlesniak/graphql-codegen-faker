@@ -76,11 +76,9 @@ describe('Faker', () => {
     );
   });
 
-
   it('should generate nested types - array', async () => {
     const schema = buildSchema(/* GraphQL */ `
       scalar FakerArgs
-
       directive @faker(
         module: String!
         method: String!
@@ -88,7 +86,6 @@ describe('Faker', () => {
       ) on FIELD_DEFINITION
       directive @fakerNested on FIELD_DEFINITION
       directive @fakerList(items: Int!, name: String!) on OBJECT
-
       type User @fakerList(items: 20, name: user) {
         id: String @faker(module: string, method: uuid)
         name: String @faker(module: person, method: firstName)
@@ -98,7 +95,6 @@ describe('Faker', () => {
         createdAt: String
         updatedAt: String
       }
-
       type UserProperties @fakerList(items: 20, name: userProperties) {
         id: String @faker(module: string, method: uuid)
         name: String @faker(module: person, method: firstName)
