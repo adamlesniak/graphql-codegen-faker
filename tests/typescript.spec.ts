@@ -76,7 +76,6 @@ describe('Faker', () => {
     );
   });
 
-
   it('should generate nested types - array', async () => {
     const schema = buildSchema(/* GraphQL */ `
       scalar FakerArgs

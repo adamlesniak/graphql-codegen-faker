@@ -52,9 +52,11 @@ export class FakerVisitor<
     return this._parsedConfig;
   }
 
-
   fieldsToKeyValueString(fields: object) {
-    return Object.entries(fields).map(([key, value]) => `${key}: ${typeof value === 'string' ? value : Array.isArray(value) ? '[' + value.map(val => '{' + this.fieldsToKeyValueString(val) + '}') + ']' : '{' + this.fieldsToKeyValueString(value) + '}'}`);
+    return Object.entries(fields).map(
+      ([key, value]) =>
+        `${key}: ${typeof value === 'string' ? value : Array.isArray(value) ? '[' + value.map((val) => '{' + this.fieldsToKeyValueString(val) + '}') + ']' : '{' + this.fieldsToKeyValueString(value) + '}'}`
+    );
   }
 
   getMockFieldsFromNode(node: ObjectTypeDefinitionNode) {
@@ -62,14 +64,8 @@ export class FakerVisitor<
 
     for (const field of node.fields) {
       const [fakerDirective, fakerNested] = [
-        this._getDirectiveFromAstNode(
-          field,
-          Directives.FAKER
-        ),
-        this._getDirectiveFromAstNode(
-          field,
-          Directives.FAKER_NESTED
-        )
+        this._getDirectiveFromAstNode(field, Directives.FAKER),
+        this._getDirectiveFromAstNode(field, Directives.FAKER_NESTED),
       ];
 
       if (fakerDirective) {
@@ -98,15 +94,26 @@ export class FakerVisitor<
           }
         }
 
-        result[field.name.value] = `faker.${module.value}.${method.value}(${Object.values(props).length > 0 ? JSON.stringify(props) : ''})`;
+        result[field.name.value] =
+          `faker.${module.value}.${method.value}(${Object.values(props).length > 0 ? JSON.stringify(props) : ''})`;
       }
 
       if (fakerNested) {
-        const isListType = (field.type as NonNullTypeNode | ListTypeNode).type.kind === Kind.LIST_TYPE;
-        const typeName = ((field.type as NonNullTypeNode).type as NamedTypeNode)?.name?.value || (((field.type as NonNullTypeNode).type as ListTypeNode)?.type as NamedTypeNode).name?.value;
+        const isListType =
+          (field.type as NonNullTypeNode | ListTypeNode).type.kind ===
+          Kind.LIST_TYPE;
+        const typeName =
+          ((field.type as NonNullTypeNode).type as NamedTypeNode)?.name
+            ?.value ||
+          (
+            ((field.type as NonNullTypeNode).type as ListTypeNode)
+              ?.type as NamedTypeNode
+          ).name?.value;
 
         const refType = this._schema.getTypeMap()[typeName];
-        const refTypeMockFields = this.getMockFieldsFromNode((refType.astNode as ObjectTypeDefinitionNode));
+        const refTypeMockFields = this.getMockFieldsFromNode(
+          refType.astNode as ObjectTypeDefinitionNode
+        );
 
         result[field.name.value] = isListType ? [{}] : {};
 
@@ -124,10 +131,10 @@ export class FakerVisitor<
   }
 
   ObjectTypeDefinition(node: ObjectTypeDefinitionNode): string | undefined {
-    const fields = this.getMockFieldsFromNode(node)
+    const fields = this.getMockFieldsFromNode(node);
 
     if (Object.keys(fields).length === 0) {
-      return ''
+      return '';
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -145,11 +152,11 @@ export class FakerVisitor<
       )?.value as IntValueNode,
     ];
 
-
     let fakerResult = [];
 
     fakerResult = [
-      `export const ${this.config.mockPrefix
+      `export const ${
+        this.config.mockPrefix
       }${typeName} = {${this.fieldsToKeyValueString(fields)}};`,
     ];
 

@@ -12,8 +12,9 @@
     "build": "bob build",
     "lint": "eslint **/*.ts",
     "test": "jest --no-watchman",
-    "prettier": "prettier -w {src,tests}/*{spec.ts,.ts}",
-    "release": "release-please --repo-url=https://github.com/adamlesniak/graphql-codegen-faker"
+    "prettier": "prettier -w **/*.ts",
+    "release": "release-please --repo-url=https://github.com/adamlesniak/graphql-codegen-faker",
+    "prepare": "husky"
   },
   "dependencies": {
     "@graphql-codegen/visitor-plugin-common": "5.8.0",
