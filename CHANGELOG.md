@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/adamlesniak/graphql-codegen-faker/compare/v1.0.0...v1.0.1) (2025-06-04)
+
+
+### Bug Fixes
+
+* **core:** Add validation ([#17](https://github.com/adamlesniak/graphql-codegen-faker/issues/17)) ([06f7f1b](https://github.com/adamlesniak/graphql-codegen-faker/commit/06f7f1bc02b8c4aa65825e57f4d278c7efef0c1f))
+
 ## 1.0.0 (2025-06-04)
 
 
