@@ -115,6 +115,12 @@ export class FakerVisitor<
   }
 
   ObjectTypeDefinition(node: ObjectTypeDefinitionNode): string | undefined {
+    const fields = this.getMockFieldsFromNode(node)
+
+    if (Object.keys(fields).length === 0) {
+      return ''
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const typeName = node.name.value || ((node as any).name as string);
 
@@ -127,10 +133,9 @@ export class FakerVisitor<
       this._getArgumentFromDirectiveAstNode(
         fakerListDirective,
         ArgumentName.ITEMS
-      ).value as IntValueNode,
+      )?.value as IntValueNode,
     ];
 
-    const fields = this.getMockFieldsFromNode(node)
 
     let fakerResult = [];
 
