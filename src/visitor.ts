@@ -53,10 +53,7 @@ export class FakerVisitor<
   }
 
   fieldsToKeyValueString(fields: object) {
-    return Object.entries(fields).map(
-      ([key, value]) =>
-        `${key}: ${typeof value === 'string' ? value : Array.isArray(value) ? '[' + value.map((val) => '{' + this.fieldsToKeyValueString(val) + '}') + ']' : '{' + this.fieldsToKeyValueString(value) + '}'}`
-    );
+    return Object.entries(fields).map(([key, value]) => `${key}: ${typeof value === 'string' ? value : Array.isArray(value) ? '[' + value.map(val => '{' + this.fieldsToKeyValueString(val) + '}') + ']' : '{' + this.fieldsToKeyValueString(value) + '}'}`);
   }
 
   getMockFieldsFromNode(node: ObjectTypeDefinitionNode) {

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/adamlesniak/graphql-codegen-faker/compare/v1.0.1...v1.1.0) (2025-06-04)
+
+
+### Features
+
+* **core:** Add in ListType support - fakerNested ([#19](https://github.com/adamlesniak/graphql-codegen-faker/issues/19)) ([dc366ce](https://github.com/adamlesniak/graphql-codegen-faker/commit/dc366ce961a4d0156f696b52ede7998e98c47b96))
+
 ## [1.0.1](https://github.com/adamlesniak/graphql-codegen-faker/compare/v1.0.0...v1.0.1) (2025-06-04)
 
 
