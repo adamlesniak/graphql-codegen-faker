@@ -106,6 +106,7 @@ dist
 # vuepress v2.x temp and cache directory
 .temp
 .cache
+.bob
 
 # Docusaurus cache and generated files
 .docusaurus
