@@ -1,155 +1,152 @@
 import {
-  BaseTypesVisitor,
-  DeclarationKind,
   getConfigValue,
-  normalizeAvoidOptionals,
-  NormalizedAvoidOptionalsConfig,
   ParsedTypesConfig,
-} from "@graphql-codegen/visitor-plugin-common";
-import autoBind from "auto-bind";
+} from '@graphql-codegen/visitor-plugin-common';
+import autoBind from 'auto-bind';
 import {
   ArgumentNode,
   DirectiveNode,
+  EnumValueNode,
   GraphQLSchema,
-  isEnumType,
+  IntValueNode,
+  NamedTypeNode,
+  NonNullTypeNode,
   ObjectTypeDefinitionNode,
-} from "graphql";
-import { TypeScriptPluginConfig, Directives, ArgumentName } from "./config";
-import { TypeScriptOperationVariablesToObject } from "./typescript-variables-to-object";
+  ObjectValueNode,
+  StringValueNode,
+} from 'graphql';
+import { ArgumentName, Directives, FakerPluginConfig } from './config';
 
-export interface TypeScriptPluginParsedConfig extends ParsedTypesConfig {
-  avoidOptionals: NormalizedAvoidOptionalsConfig;
-  constEnums: boolean;
-  enumsAsTypes: boolean;
-  futureProofEnums: boolean;
-  futureProofUnions: boolean;
-  enumsAsConst: boolean;
-  numericEnums: boolean;
-  onlyEnums: boolean;
-  onlyOperationTypes: boolean;
-  immutableTypes: boolean;
-  maybeValue: string;
-  inputMaybeValue: string;
-  noExport: boolean;
-  useImplementingTypes: boolean;
+export interface FakerPluginParsedConfig extends ParsedTypesConfig {
+  mockPrefix: string;
+  locality: string;
 }
-
-export const EXACT_SIGNATURE = `type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };`;
-export const MAKE_OPTIONAL_SIGNATURE = `type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };`;
-export const MAKE_MAYBE_SIGNATURE = `type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };`;
-export const MAKE_EMPTY_SIGNATURE = `type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };`;
-export const MAKE_INCREMENTAL_SIGNATURE = `type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };`;
 
 type Directivable = { directives?: ReadonlyArray<DirectiveNode> };
 type Argumentable = { arguments?: ReadonlyArray<ArgumentNode> };
 
-export class TsVisitor<
-  TRawConfig extends TypeScriptPluginConfig = TypeScriptPluginConfig,
-  TParsedConfig extends TypeScriptPluginParsedConfig = TypeScriptPluginParsedConfig
-> extends BaseTypesVisitor<TRawConfig, TParsedConfig> {
+export class FakerVisitor<
+  TRawConfig extends FakerPluginConfig = FakerPluginConfig,
+> {
+  protected _parsedConfig: FakerPluginConfig;
+  private _schema: GraphQLSchema;
+
   constructor(
     schema: GraphQLSchema,
     pluginConfig: TRawConfig,
-    additionalConfig: Partial<TParsedConfig> = {}
+    additionalConfig: Partial<FakerPluginConfig> = {}
   ) {
-    super(schema, pluginConfig, {
-      noExport: getConfigValue(pluginConfig.noExport, false),
-      avoidOptionals: normalizeAvoidOptionals(
-        getConfigValue(pluginConfig.avoidOptionals, false)
-      ),
-      maybeValue: getConfigValue(pluginConfig.maybeValue, "T | null"),
-      inputMaybeValue: getConfigValue(
-        pluginConfig.inputMaybeValue,
-        getConfigValue(pluginConfig.maybeValue, "Maybe<T>")
-      ),
-      constEnums: getConfigValue(pluginConfig.constEnums, false),
-      enumsAsTypes: getConfigValue(pluginConfig.enumsAsTypes, false),
-      futureProofEnums: getConfigValue(pluginConfig.futureProofEnums, false),
-      futureProofUnions: getConfigValue(pluginConfig.futureProofUnions, false),
-      enumsAsConst: getConfigValue(pluginConfig.enumsAsConst, false),
-      numericEnums: getConfigValue(pluginConfig.numericEnums, false),
-      onlyEnums: getConfigValue(pluginConfig.onlyEnums, false),
-      onlyOperationTypes: getConfigValue(
-        pluginConfig.onlyOperationTypes,
-        false
-      ),
-      immutableTypes: getConfigValue(pluginConfig.immutableTypes, false),
-      useImplementingTypes: getConfigValue(
-        pluginConfig.useImplementingTypes,
-        false
-      ),
-      entireFieldWrapperValue: getConfigValue(
-        pluginConfig.entireFieldWrapperValue,
-        "T"
-      ),
-      wrapEntireDefinitions: getConfigValue(
-        pluginConfig.wrapEntireFieldDefinitions,
-        false
-      ),
+    this._parsedConfig = {
+      mockPrefix: getConfigValue(pluginConfig.mockPrefix, 'mock'),
+      locality: getConfigValue(pluginConfig.locality, 'EN'),
       ...additionalConfig,
-    } as TParsedConfig);
+    };
+    this._schema = schema;
 
     autoBind(this);
-    const enumNames = Object.values(schema.getTypeMap())
-      .filter(isEnumType)
-      .map((type) => type.name);
-    this.setArgumentsTransformer(
-      new TypeScriptOperationVariablesToObject(
-        this.scalars,
-        this.convertName,
-        this.config.avoidOptionals,
-        this.config.immutableTypes,
-        null,
-        enumNames,
-        pluginConfig.enumPrefix,
-        pluginConfig.enumSuffix,
-        this.config.enumValues,
-        false,
-        this.config.directiveArgumentAndInputFieldMappings,
-        "InputMaybe"
-      )
-    );
-    this.setDeclarationBlockConfig({
-      enumNameValueSeparator: " =",
-      ignoreExport: this.config.noExport,
-    });
   }
 
-  protected getExportPrefix(): string {
-    if (this.config.noExport) {
-      return "";
+  get config() {
+    return this._parsedConfig;
+  }
+
+
+  fieldsToKeyValueString(fields: object) {
+    return Object.entries(fields).map(([key, value]) => `${key}: ${typeof value === 'string' ? value : '{' + this.fieldsToKeyValueString(value) + '}'}`);
+  }
+
+  getMockFieldsFromNode(node: ObjectTypeDefinitionNode) {
+    const result = [];
+
+    for (const field of node.fields) {
+      const [fakerDirective, fakerNested] = [
+        this._getDirectiveFromAstNode(
+          field,
+          Directives.FAKER
+        ),
+        this._getDirectiveFromAstNode(
+          field,
+          Directives.FAKER_NESTED
+        )
+      ];
+
+      if (fakerDirective) {
+        const [module, method, args] = [
+          this._getArgumentFromDirectiveAstNode(
+            fakerDirective,
+            ArgumentName.MODULE
+          ).value as EnumValueNode,
+          this._getArgumentFromDirectiveAstNode(
+            fakerDirective,
+            ArgumentName.METHOD
+          ).value as EnumValueNode,
+          this._getArgumentFromDirectiveAstNode(
+            fakerDirective,
+            ArgumentName.ARGS
+          )?.value as ObjectValueNode,
+        ];
+
+        const props = {};
+
+        if (args?.fields) {
+          for (const fakerField of args.fields) {
+            props[fakerField.name.value] = (
+              fakerField.value as StringValueNode
+            ).value;
+          }
+        }
+
+        result[field.name.value] = `faker.${module.value}.${method.value}(${Object.values(props).length > 0 ? JSON.stringify(props) : ''})`;
+      }
+
+      if (fakerNested) {
+        const refType = this._schema.getTypeMap()[((field.type as NonNullTypeNode).type as NamedTypeNode)?.name?.value];
+        const refTypeMockFields = this.getMockFieldsFromNode((refType.astNode as ObjectTypeDefinitionNode));
+
+        result[field.name.value] = {};
+
+        for (const [key, value] of Object.entries(refTypeMockFields)) {
+          result[field.name.value][key] = value;
+        }
+      }
     }
 
-    return super.getExportPrefix();
+    return result;
   }
 
   ObjectTypeDefinition(node: ObjectTypeDefinitionNode): string | undefined {
-    const fields = node.fields;
-    console.log("fields", node, fields);
-    const fakerDirective = this._getDirectiveFromAstNode(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const typeName = node.name.value || ((node as any).name as string);
+
+    const fakerListDirective = this._getDirectiveFromAstNode(
       node,
-      Directives.FAKER
+      Directives.FAKER_LIST
     );
 
-    if (fakerDirective) {
-      const [module, method] = [
-        this._getArgumentFromDirectiveAstNode(
-          fakerDirective,
-          ArgumentName.MODULE
-        ),
-        this._getArgumentFromDirectiveAstNode(
-          fakerDirective,
-          ArgumentName.METHOD
-        ),
+    const [items] = [
+      this._getArgumentFromDirectiveAstNode(
+        fakerListDirective,
+        ArgumentName.ITEMS
+      ).value as IntValueNode,
+    ];
+
+    const fields = this.getMockFieldsFromNode(node)
+
+    let fakerResult = [];
+
+    fakerResult = [
+      `export const ${this.config.mockPrefix
+      }${typeName} = {${this.fieldsToKeyValueString(fields)}};`,
+    ];
+
+    if (fakerListDirective) {
+      fakerResult = [
+        ...fakerResult,
+        `export const ${this.config.mockPrefix}${typeName}List = Array.from({ length: ${items.value} }, () => ({...${this.config.mockPrefix}${typeName}}));`,
       ];
-
-      console.log("node", node.name, module.value, method.value);
-      console.log("directives", JSON.stringify(node.directives));
-
-      return ``;
     }
 
-    return undefined;
+    return fakerResult.join('\n');
   }
 
   private _getDirectiveFromAstNode(
@@ -162,6 +159,7 @@ export class TsVisitor<
 
     const foundDirective = node.directives.find(
       (d) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (d.name as any) === directiveName ||
         (d.name.value && d.name.value === directiveName)
     );
@@ -183,6 +181,7 @@ export class TsVisitor<
 
     const foundArgument = node.arguments.find(
       (d) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (d.name as any) === argumentName ||
         (d.name.value && d.name.value === argumentName)
     );
@@ -192,9 +191,5 @@ export class TsVisitor<
     }
 
     return foundArgument;
-  }
-
-  protected getPunctuation(_declarationKind: DeclarationKind): string {
-    return ";";
   }
 }
