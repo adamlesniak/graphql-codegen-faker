@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/adamlesniak/graphql-codegen-faker/compare/v1.1.0...v1.2.0) (2025-06-04)
+
+
+### Features
+
+* **core:** Project formatting ([#21](https://github.com/adamlesniak/graphql-codegen-faker/issues/21)) ([c1145f0](https://github.com/adamlesniak/graphql-codegen-faker/commit/c1145f0c5eb3124fc134ddb00f56c21295aec5c2))
+
 ## [1.1.0](https://github.com/adamlesniak/graphql-codegen-faker/compare/v1.0.1...v1.1.0) (2025-06-04)
 
 
