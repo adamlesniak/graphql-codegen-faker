@@ -9,6 +9,8 @@ import {
   EnumValueNode,
   GraphQLSchema,
   IntValueNode,
+  Kind,
+  ListTypeNode,
   NamedTypeNode,
   NonNullTypeNode,
   ObjectTypeDefinitionNode,
@@ -52,7 +54,7 @@ export class FakerVisitor<
 
 
   fieldsToKeyValueString(fields: object) {
-    return Object.entries(fields).map(([key, value]) => `${key}: ${typeof value === 'string' ? value : '{' + this.fieldsToKeyValueString(value) + '}'}`);
+    return Object.entries(fields).map(([key, value]) => `${key}: ${typeof value === 'string' ? value : Array.isArray(value) ? '[' + value.map(val => '{' + this.fieldsToKeyValueString(val) + '}') + ']' : '{' + this.fieldsToKeyValueString(value) + '}'}`);
   }
 
   getMockFieldsFromNode(node: ObjectTypeDefinitionNode) {
@@ -100,17 +102,24 @@ export class FakerVisitor<
       }
 
       if (fakerNested) {
-        const refType = this._schema.getTypeMap()[((field.type as NonNullTypeNode).type as NamedTypeNode)?.name?.value];
+        const isListType = (field.type as NonNullTypeNode | ListTypeNode).type.kind === Kind.LIST_TYPE;
+        const typeName = ((field.type as NonNullTypeNode).type as NamedTypeNode)?.name?.value || (((field.type as NonNullTypeNode).type as ListTypeNode)?.type as NamedTypeNode).name?.value;
+
+        const refType = this._schema.getTypeMap()[typeName];
         const refTypeMockFields = this.getMockFieldsFromNode((refType.astNode as ObjectTypeDefinitionNode));
 
-        result[field.name.value] = {};
+        result[field.name.value] = isListType ? [{}] : {};
 
         for (const [key, value] of Object.entries(refTypeMockFields)) {
-          result[field.name.value][key] = value;
+          if (isListType) {
+            // TODO: Add in configurable amount of items.
+            result[field.name.value][0][key] = value;
+          } else {
+            result[field.name.value][key] = value;
+          }
         }
       }
     }
-
     return result;
   }
 
