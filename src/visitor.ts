@@ -60,6 +60,7 @@ export class FakerVisitor<
       case Kind.BOOLEAN:
       case Kind.ENUM:
       case Kind.FLOAT:
+      case Kind.INT:
         return node.value;
       case Kind.LIST:
         return node.values.map(
@@ -103,20 +104,22 @@ export class FakerVisitor<
           )?.value as ObjectValueNode,
         ];
 
-        let props = {};
+        let parsedArgs = {};
 
         if (args && !args.fields) {
-          props = this.argsToProps(args);
+          parsedArgs = this.argsToProps(args);
         }
 
         if (args?.fields) {
           for (const fakerField of args.fields) {
-            props[fakerField.name.value] = this.argsToProps(fakerField.value);
+            parsedArgs[fakerField.name.value] = this.argsToProps(
+              fakerField.value
+            );
           }
         }
 
         result[field.name.value] =
-          `faker.${module.value}.${method.value}(${Object.values(props).length > 0 ? JSON.stringify(props) : ''})`;
+          `faker.${module.value}.${method.value}(${Object.values(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : ''})`;
       }
 
       if (fakerNested) {
