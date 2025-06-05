@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/adamlesniak/graphql-codegen-faker/compare/v1.2.0...v1.3.0) (2025-06-05)
+
+
+### Features
+
+* **core:** Add in inline args and different types ([#23](https://github.com/adamlesniak/graphql-codegen-faker/issues/23)) ([b6521ef](https://github.com/adamlesniak/graphql-codegen-faker/commit/b6521ef7ffb90fec151cc5300b4770676ef6a196))
+
 ## [1.2.0](https://github.com/adamlesniak/graphql-codegen-faker/compare/v1.1.0...v1.2.0) (2025-06-04)
 
 
