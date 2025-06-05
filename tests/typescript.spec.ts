@@ -12,10 +12,20 @@ describe('Faker', () => {
         args: FakerArgs
       ) on FIELD_DEFINITION
       directive @fakerList(items: Int!, name: String!) on OBJECT
+      enum UserType {
+        STATUS
+        MEMBER
+      }
       type User @fakerList(items: 20, name: user) {
         id: String @faker(module: string, method: uuid, args: { sex: "male" })
         name: String @faker(module: person, method: firstName)
         email: String
+        type: UserType
+          @faker(
+            module: helpers
+            method: arrayElement
+            args: ["STATUS", "ACTIVE"]
+          )
         password: String
         createdAt: String
         updatedAt: String
@@ -28,7 +38,7 @@ describe('Faker', () => {
     ]);
     expect(result.content).toEqual(
       [
-        'export const mockUser = {id: faker.string.uuid({"sex":"male"}),name: faker.person.firstName()};',
+        'export const mockUser = {id: faker.string.uuid({"sex":"male"}),name: faker.person.firstName(),type: faker.helpers.arrayElement(["STATUS","ACTIVE"])};',
         'export const mockUserList = Array.from({ length: 20 }, () => ({...mockUser}));',
       ].join('\n')
     );
@@ -76,7 +86,7 @@ describe('Faker', () => {
     );
   });
 
-  it('should generate nested types - array', async () => {
+  it('should pass with array and inline arguments on @faker', async () => {
     const schema = buildSchema(/* GraphQL */ `
       scalar FakerArgs
       directive @faker(
@@ -86,8 +96,12 @@ describe('Faker', () => {
       ) on FIELD_DEFINITION
       directive @fakerNested on FIELD_DEFINITION
       directive @fakerList(items: Int!, name: String!) on OBJECT
+      enum UserType {
+        STATUS
+        MEMBER
+      }
       type User @fakerList(items: 20, name: user) {
-        id: String @faker(module: string, method: uuid)
+        id: String @faker(module: string, method: uuid, args: "test")
         name: String @faker(module: person, method: firstName)
         email: String
         password: String
@@ -107,7 +121,7 @@ describe('Faker', () => {
     ]);
     expect(result.content).toEqual(
       [
-        'export const mockUser = {id: faker.string.uuid(),name: faker.person.firstName(),properties: [{id: faker.string.uuid(),name: faker.person.firstName()}]};',
+        'export const mockUser = {id: faker.string.uuid("test"),name: faker.person.firstName(),properties: [{id: faker.string.uuid(),name: faker.person.firstName()}]};',
         'export const mockUserList = Array.from({ length: 20 }, () => ({...mockUser}));',
         'export const mockUserProperties = {id: faker.string.uuid(),name: faker.person.firstName()};',
         'export const mockUserPropertiesList = Array.from({ length: 20 }, () => ({...mockUserProperties}));',
