@@ -7,6 +7,7 @@ import {
   ArgumentNode,
   DirectiveNode,
   EnumValueNode,
+  FloatValueNode,
   GraphQLSchema,
   IntValueNode,
   Kind,
@@ -16,6 +17,7 @@ import {
   ObjectTypeDefinitionNode,
   ObjectValueNode,
   StringValueNode,
+  ValueNode,
 } from 'graphql';
 import { ArgumentName, Directives, FakerPluginConfig } from './config';
 
@@ -52,8 +54,29 @@ export class FakerVisitor<
     return this._parsedConfig;
   }
 
+  argsToProps(node: ValueNode) {
+    switch (node.kind) {
+      case Kind.STRING:
+      case Kind.BOOLEAN:
+      case Kind.ENUM:
+      case Kind.FLOAT:
+      case Kind.INT:
+        return node.value;
+      case Kind.LIST:
+        return node.values.map(
+          (item) =>
+            (item as StringValueNode | IntValueNode | FloatValueNode).value
+        );
+    }
+
+    return undefined;
+  }
+
   fieldsToKeyValueString(fields: object) {
-    return Object.entries(fields).map(([key, value]) => `${key}: ${typeof value === 'string' ? value : Array.isArray(value) ? '[' + value.map(val => '{' + this.fieldsToKeyValueString(val) + '}') + ']' : '{' + this.fieldsToKeyValueString(value) + '}'}`);
+    return Object.entries(fields).map(
+      ([key, value]) =>
+        `${key}: ${typeof value === 'string' ? value : Array.isArray(value) ? '[' + value.map((val) => '{' + this.fieldsToKeyValueString(val) + '}') + ']' : '{' + this.fieldsToKeyValueString(value) + '}'}`
+    );
   }
 
   getMockFieldsFromNode(node: ObjectTypeDefinitionNode) {
@@ -81,18 +104,22 @@ export class FakerVisitor<
           )?.value as ObjectValueNode,
         ];
 
-        const props = {};
+        let parsedArgs = {};
+
+        if (args && !args.fields) {
+          parsedArgs = this.argsToProps(args);
+        }
 
         if (args?.fields) {
           for (const fakerField of args.fields) {
-            props[fakerField.name.value] = (
-              fakerField.value as StringValueNode
-            ).value;
+            parsedArgs[fakerField.name.value] = this.argsToProps(
+              fakerField.value
+            );
           }
         }
 
         result[field.name.value] =
-          `faker.${module.value}.${method.value}(${Object.values(props).length > 0 ? JSON.stringify(props) : ''})`;
+          `faker.${module.value}.${method.value}(${Object.values(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : ''})`;
       }
 
       if (fakerNested) {
@@ -130,12 +157,12 @@ export class FakerVisitor<
   ObjectTypeDefinition(node: ObjectTypeDefinitionNode): string | undefined {
     const fields = this.getMockFieldsFromNode(node);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const typeName = node.name.value || ((node as any).name as string);
+
     if (Object.keys(fields).length === 0) {
       return '';
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typeName = node.name.value || ((node as any).name as string);
 
     const fakerListDirective = this._getDirectiveFromAstNode(
       node,
