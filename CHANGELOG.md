@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/adamlesniak/graphql-codegen-faker/compare/v1.3.0...v1.4.0) (2025-06-06)
+
+
+### Features
+
+* **core:** Faker mocks dynamic ([#25](https://github.com/adamlesniak/graphql-codegen-faker/issues/25)) ([4a6befd](https://github.com/adamlesniak/graphql-codegen-faker/commit/4a6befdb917a94b805ff2e6fd43c8e9a2ea22da4))
+
 ## [1.3.0](https://github.com/adamlesniak/graphql-codegen-faker/compare/v1.2.0...v1.3.0) (2025-06-05)
 
 
