@@ -181,13 +181,13 @@ export class FakerVisitor<
     fakerResult = [
       `export const ${
         this.config.mockPrefix
-      }${typeName} = {${this.fieldsToKeyValueString(fields)}};`,
+      }${typeName} = () => ({${this.fieldsToKeyValueString(fields)}});`,
     ];
 
     if (fakerListDirective) {
       fakerResult = [
         ...fakerResult,
-        `export const ${this.config.mockPrefix}${typeName}List = Array.from({ length: ${items.value} }, () => ({...${this.config.mockPrefix}${typeName}}));`,
+        `export const ${this.config.mockPrefix}${typeName}List = Array.from({ length: ${items.value} }, () => ${this.config.mockPrefix}${typeName}());`,
       ];
     }
 
