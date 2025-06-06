@@ -38,8 +38,8 @@ describe('Faker', () => {
     ]);
     expect(result.content).toEqual(
       [
-        'export const mockUser = {id: faker.string.uuid({"sex":"male"}),name: faker.person.firstName(),type: faker.helpers.arrayElement(["STATUS","ACTIVE"])};',
-        'export const mockUserList = Array.from({ length: 20 }, () => ({...mockUser}));',
+        'export const mockUser = () => ({id: faker.string.uuid({"sex":"male"}),name: faker.person.firstName(),type: faker.helpers.arrayElement(["STATUS","ACTIVE"])});',
+        'export const mockUserList = Array.from({ length: 20 }, () => mockUser());',
       ].join('\n')
     );
   });
@@ -78,10 +78,10 @@ describe('Faker', () => {
     ]);
     expect(result.content).toEqual(
       [
-        'export const mockUser = {id: faker.string.uuid(),name: faker.person.firstName(),properties: {id: faker.string.uuid(),name: faker.person.firstName()}};',
-        'export const mockUserList = Array.from({ length: 20 }, () => ({...mockUser}));',
-        'export const mockUserProperties = {id: faker.string.uuid(),name: faker.person.firstName()};',
-        'export const mockUserPropertiesList = Array.from({ length: 20 }, () => ({...mockUserProperties}));',
+        'export const mockUser = () => ({id: faker.string.uuid(),name: faker.person.firstName(),properties: {id: faker.string.uuid(),name: faker.person.firstName()}});',
+        'export const mockUserList = Array.from({ length: 20 }, () => mockUser());',
+        'export const mockUserProperties = () => ({id: faker.string.uuid(),name: faker.person.firstName()});',
+        'export const mockUserPropertiesList = Array.from({ length: 20 }, () => mockUserProperties());',
       ].join('\n')
     );
   });
@@ -121,10 +121,10 @@ describe('Faker', () => {
     ]);
     expect(result.content).toEqual(
       [
-        'export const mockUser = {id: faker.string.uuid("test"),name: faker.person.firstName(),properties: [{id: faker.string.uuid(),name: faker.person.firstName()}]};',
-        'export const mockUserList = Array.from({ length: 20 }, () => ({...mockUser}));',
-        'export const mockUserProperties = {id: faker.string.uuid(),name: faker.person.firstName()};',
-        'export const mockUserPropertiesList = Array.from({ length: 20 }, () => ({...mockUserProperties}));',
+        'export const mockUser = () => ({id: faker.string.uuid("test"),name: faker.person.firstName(),properties: [{id: faker.string.uuid(),name: faker.person.firstName()}]});',
+        'export const mockUserList = Array.from({ length: 20 }, () => mockUser());',
+        'export const mockUserProperties = () => ({id: faker.string.uuid(),name: faker.person.firstName()});',
+        'export const mockUserPropertiesList = Array.from({ length: 20 }, () => mockUserProperties());',
       ].join('\n')
     );
   });
