@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/adamlesniak/graphql-codegen-faker/compare/v1.4.0...v1.5.0) (2025-07-05)
+
+
+### Features
+
+* **core:** Add DIRECTIVES ([#27](https://github.com/adamlesniak/graphql-codegen-faker/issues/27)) ([a15c25f](https://github.com/adamlesniak/graphql-codegen-faker/commit/a15c25f9b4511dc35c4db3a78a2b439b93067c9e))
+
 ## [1.4.0](https://github.com/adamlesniak/graphql-codegen-faker/compare/v1.3.0...v1.4.0) (2025-06-06)
 
 
