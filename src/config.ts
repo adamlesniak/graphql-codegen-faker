@@ -65,3 +65,14 @@ export enum ArgumentName {
   ARGS = 'args',
   ITEMS = 'items',
 }
+
+export const DIRECTIVES = `
+  scalar FakerArgs
+  directive @${Directives.FAKER}(
+    module: String!
+    method: String!
+    args: FakerArgs
+  ) on FIELD_DEFINITION
+  directive @${Directives.FAKER_NESTED} on FIELD_DEFINITION
+  directive @${Directives.FAKER_LIST}(items: Int!, name: String!) on OBJECT
+`;
