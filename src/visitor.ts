@@ -191,11 +191,6 @@ export class FakerVisitor<
       Directives.FAKER_LIST
     );
 
-    const items = this._getArgumentFromDirectiveAstNode(
-      fakerListDirective,
-      ArgumentName.ITEMS
-    )?.value as IntValueNode;
-
     const fakerResult = [
       `export const ${
         this.config.mockPrefix
@@ -203,9 +198,16 @@ export class FakerVisitor<
     ];
 
     if (fakerListDirective) {
-      fakerResult.push(
-        `export const ${this.config.mockPrefix}${typeName}List = Array.from({ length: ${items.value} }, () => ${this.config.mockPrefix}${typeName}());`
-      );
+      const items = this._getArgumentFromDirectiveAstNode(
+        fakerListDirective,
+        ArgumentName.ITEMS
+      )?.value as IntValueNode;
+
+      if (items) {
+        fakerResult.push(
+          `export const ${this.config.mockPrefix}${typeName}List = Array.from({ length: ${items.value} }, () => ${this.config.mockPrefix}${typeName}());`
+        );
+      }
     }
 
     return fakerResult.join('\n');
