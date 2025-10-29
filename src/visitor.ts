@@ -130,11 +130,29 @@ export class FakerVisitor<
           }
         }
 
-        result[field.name.value] =
-          `faker.${module.value}.${method.value}(${Object.keys(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : ''})`;
+        const fieldName = field.name.value;
+        // Protect against prototype pollution
+        if (
+          fieldName !== '__proto__' &&
+          fieldName !== 'constructor' &&
+          fieldName !== 'prototype'
+        ) {
+          result[fieldName] =
+            `faker.${module.value}.${method.value}(${Object.keys(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : ''})`;
+        }
       }
 
       if (fakerNested) {
+        const fieldName = field.name.value;
+        // Protect against prototype pollution
+        if (
+          fieldName === '__proto__' ||
+          fieldName === 'constructor' ||
+          fieldName === 'prototype'
+        ) {
+          continue;
+        }
+
         const isListType =
           (field.type as NonNullTypeNode | ListTypeNode).type.kind ===
           Kind.LIST_TYPE;
@@ -161,14 +179,22 @@ export class FakerVisitor<
           newVisitedTypes
         );
 
-        result[field.name.value] = isListType ? [{}] : {};
+        result[fieldName] = isListType ? [{}] : {};
 
         for (const [key, value] of Object.entries(refTypeMockFields)) {
+          // Protect against prototype pollution by filtering dangerous property names
+          if (
+            key === '__proto__' ||
+            key === 'constructor' ||
+            key === 'prototype'
+          ) {
+            continue;
+          }
           if (isListType) {
             // TODO: Add in configurable amount of items.
-            result[field.name.value][0][key] = value;
+            result[fieldName][0][key] = value;
           } else {
-            result[field.name.value][key] = value;
+            result[fieldName][key] = value;
           }
         }
       }
