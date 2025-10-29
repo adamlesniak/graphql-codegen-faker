@@ -54,6 +54,12 @@ export class FakerVisitor<
     return this._parsedConfig;
   }
 
+  private isDangerousPropertyName(name: string): boolean {
+    return (
+      name === '__proto__' || name === 'constructor' || name === 'prototype'
+    );
+  }
+
   argsToProps(node: ValueNode) {
     switch (node.kind) {
       case Kind.STRING:
@@ -91,7 +97,8 @@ export class FakerVisitor<
     node: ObjectTypeDefinitionNode,
     visitedTypes: Set<string> = new Set()
   ) {
-    const result = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: Record<string, any> = {};
     const currentTypeName = node.name.value;
 
     for (const field of node.fields) {
@@ -132,11 +139,7 @@ export class FakerVisitor<
 
         const fieldName = field.name.value;
         // Protect against prototype pollution
-        if (
-          fieldName !== '__proto__' &&
-          fieldName !== 'constructor' &&
-          fieldName !== 'prototype'
-        ) {
+        if (!this.isDangerousPropertyName(fieldName)) {
           result[fieldName] =
             `faker.${module.value}.${method.value}(${Object.keys(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : ''})`;
         }
@@ -145,11 +148,7 @@ export class FakerVisitor<
       if (fakerNested) {
         const fieldName = field.name.value;
         // Protect against prototype pollution
-        if (
-          fieldName === '__proto__' ||
-          fieldName === 'constructor' ||
-          fieldName === 'prototype'
-        ) {
+        if (this.isDangerousPropertyName(fieldName)) {
           continue;
         }
 
@@ -183,11 +182,7 @@ export class FakerVisitor<
 
         for (const [key, value] of Object.entries(refTypeMockFields)) {
           // Protect against prototype pollution by filtering dangerous property names
-          if (
-            key === '__proto__' ||
-            key === 'constructor' ||
-            key === 'prototype'
-          ) {
+          if (this.isDangerousPropertyName(key)) {
             continue;
           }
           if (isListType) {
