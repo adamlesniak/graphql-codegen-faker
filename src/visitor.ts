@@ -87,8 +87,12 @@ export class FakerVisitor<
     });
   }
 
-  getMockFieldsFromNode(node: ObjectTypeDefinitionNode) {
+  getMockFieldsFromNode(
+    node: ObjectTypeDefinitionNode,
+    visitedTypes: Set<string> = new Set()
+  ) {
     const result = [];
+    const currentTypeName = node.name.value;
 
     for (const field of node.fields) {
       const [fakerDirective, fakerNested] = [
@@ -142,9 +146,19 @@ export class FakerVisitor<
               ?.type as NamedTypeNode
           ).name?.value;
 
+        // Prevent infinite recursion by detecting circular references
+        if (visitedTypes.has(typeName)) {
+          // Skip circular nested types to prevent stack overflow
+          continue;
+        }
+
         const refType = this._typeMap[typeName];
+        const newVisitedTypes = new Set(visitedTypes);
+        newVisitedTypes.add(currentTypeName);
+
         const refTypeMockFields = this.getMockFieldsFromNode(
-          refType.astNode as ObjectTypeDefinitionNode
+          refType.astNode as ObjectTypeDefinitionNode,
+          newVisitedTypes
         );
 
         result[field.name.value] = isListType ? [{}] : {};

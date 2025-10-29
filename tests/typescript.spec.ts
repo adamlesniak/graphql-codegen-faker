@@ -128,4 +128,54 @@ describe('Faker', () => {
       ].join('\n')
     );
   });
+
+  it('should efficiently handle large schemas with multiple types and nested fields', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      scalar FakerArgs
+
+      directive @faker(
+        module: String!
+        method: String!
+        args: FakerArgs
+      ) on FIELD_DEFINITION
+      directive @fakerNested on FIELD_DEFINITION
+      directive @fakerList(items: Int!, name: String!) on OBJECT
+
+      type User @fakerList(items: 50, name: user) {
+        id: String @faker(module: string, method: uuid)
+        name: String @faker(module: person, method: firstName)
+        email: String @faker(module: internet, method: email)
+        address: Address! @fakerNested
+        posts: [Post]! @fakerNested
+      }
+
+      type Address {
+        street: String @faker(module: location, method: streetAddress)
+        city: String @faker(module: location, method: city)
+        country: String @faker(module: location, method: country)
+      }
+
+      type Post @fakerList(items: 100, name: post) {
+        id: String @faker(module: string, method: uuid)
+        title: String @faker(module: lorem, method: sentence)
+        content: String @faker(module: lorem, method: paragraph)
+        author: User! @fakerNested
+      }
+    `);
+
+    const result = await plugin(schema, [], {}, { outputFile: '' });
+
+    expect(result.prepend).toEqual([
+      "import { fakerEN as faker } from '@faker-js/faker';",
+    ]);
+    expect(result.content).toContain('export const mockUser = ()');
+    expect(result.content).toContain('export const mockAddress = ()');
+    expect(result.content).toContain('export const mockPost = ()');
+    expect(result.content).toContain(
+      'export const mockUserList = Array.from({ length: 50 }, () => mockUser());'
+    );
+    expect(result.content).toContain(
+      'export const mockPostList = Array.from({ length: 100 }, () => mockPost());'
+    );
+  });
 });
