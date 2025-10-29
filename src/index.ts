@@ -27,9 +27,7 @@ export const plugin: PluginFunction<
   const visitorResult = oldVisit(ast, { leave: visitor });
 
   return {
-    prepend: ["import { fakerEN as faker } from '@faker-js/faker';"].filter(
-      Boolean
-    ),
+    prepend: ["import { fakerEN as faker } from '@faker-js/faker';"],
     content: visitorResult.definitions
       .filter((def) => def.length > 0)
       .join('\n'),

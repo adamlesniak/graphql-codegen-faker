@@ -33,7 +33,7 @@ export class FakerVisitor<
   TRawConfig extends FakerPluginConfig = FakerPluginConfig,
 > {
   protected _parsedConfig: FakerPluginConfig;
-  private _schema: GraphQLSchema;
+  private _typeMap: ReturnType<GraphQLSchema['getTypeMap']>;
 
   constructor(
     schema: GraphQLSchema,
@@ -45,7 +45,7 @@ export class FakerVisitor<
       locality: getConfigValue(pluginConfig.locality, 'EN'),
       ...additionalConfig,
     };
-    this._schema = schema;
+    this._typeMap = schema.getTypeMap();
 
     autoBind(this);
   }
@@ -73,10 +73,18 @@ export class FakerVisitor<
   }
 
   fieldsToKeyValueString(fields: object) {
-    return Object.entries(fields).map(
-      ([key, value]) =>
-        `${key}: ${typeof value === 'string' ? value : Array.isArray(value) ? '[' + value.map((val) => '{' + this.fieldsToKeyValueString(val) + '}') + ']' : '{' + this.fieldsToKeyValueString(value) + '}'}`
-    );
+    return Object.entries(fields).map(([key, value]) => {
+      if (typeof value === 'string') {
+        return `${key}: ${value}`;
+      }
+      if (Array.isArray(value)) {
+        const arrayContent = value
+          .map((val) => `{${this.fieldsToKeyValueString(val)}}`)
+          .join(',');
+        return `${key}: [${arrayContent}]`;
+      }
+      return `${key}: {${this.fieldsToKeyValueString(value)}}`;
+    });
   }
 
   getMockFieldsFromNode(node: ObjectTypeDefinitionNode) {
@@ -119,7 +127,7 @@ export class FakerVisitor<
         }
 
         result[field.name.value] =
-          `faker.${module.value}.${method.value}(${Object.values(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : ''})`;
+          `faker.${module.value}.${method.value}(${Object.keys(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : ''})`;
       }
 
       if (fakerNested) {
@@ -134,7 +142,7 @@ export class FakerVisitor<
               ?.type as NamedTypeNode
           ).name?.value;
 
-        const refType = this._schema.getTypeMap()[typeName];
+        const refType = this._typeMap[typeName];
         const refTypeMockFields = this.getMockFieldsFromNode(
           refType.astNode as ObjectTypeDefinitionNode
         );
